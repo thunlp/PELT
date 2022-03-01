@@ -1,5 +1,5 @@
 # PELT
-Code and data of the ACL 2022 paper "A Simple but Effective Pluggable Entity Lookup Table for Pre-trained Language Models". 
+Code and data of the ACL 2022 paper "[A Simple but Effective Pluggable Entity Lookup Table for Pre-trained Language Models](https://arxiv.org/abs/2202.13392)". 
 
 
 ## Requiremnt
