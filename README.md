@@ -80,7 +80,7 @@ The code for BART is based on transformers 4.15. Please send mail to acquire thi
 If you use our code in your research, please cite our work:
 ```bibtex
 @article{ye2022pelt,
-  author    = {Deming Ye and Yankai Lin and Maosong Sun},
+  author    = {Deming Ye, Yankai Lin, Peng Li, Zhiyuan Liu, Maosong Sun},
   title     = {A Simple but Effective Pluggable Entity Lookup Table for Pre-trained Language Models},
   booktitle = {Proceedings of ACL 2022},
   year      = {2022}
