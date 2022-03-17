@@ -23,10 +23,7 @@ from tqdm import tqdm, trange
 
 from transformers import (WEIGHTS_NAME, AdamW, get_linear_schedule_with_warmup,
                                   BertConfig, BertForMaskedLM, BertTokenizer,
-                                  GPT2Config, GPT2LMHeadModel, GPT2Tokenizer,
-                                  OpenAIGPTConfig, OpenAIGPTLMHeadModel, OpenAIGPTTokenizer,
                                   RobertaConfig, RobertaForMaskedLM, RobertaTokenizer,
-                                  DistilBertConfig, DistilBertForMaskedLM, DistilBertTokenizer, 
                                   RobertaForRep, BertForRep)
 
 
@@ -39,58 +36,56 @@ logger = logging.getLogger(__name__)
 
 
 MODEL_CLASSES = {
-    'bertrep': (BertConfig, BertForRep, BertTokenizer),
-    'robertarep': (RobertaConfig, RobertaForRep, RobertaTokenizer),
+    'bert': (BertConfig, BertForRep, BertTokenizer),
+    'roberta': (RobertaConfig, RobertaForRep, RobertaTokenizer),
 }
 
 
 class TextDataset(Dataset):
-    def __init__(self, tokenizer, working_dir='train', max_seq_length=64, args=None):
+    def __init__(self, tokenizer, args):
 
-        self.max_seq_length = max_seq_length
+        self.max_seq_length = args.max_seq_length
         self.tokenizer = tokenizer
 
         self.args = args
-        logger.info("Loading features from cached file %s", working_dir)
+        logger.info("Loading features from cached file %s", args.data_dir)
 
-        f = h5py.File(os.path.join(working_dir, 'input_ids.h5'), 'r')  
-        self.input_ids = f['input_ids'] 
+        f1 = h5py.File(os.path.join(args.data_dir, 'input_ids'+args.suffix+'.h5'), 'r')  
+        self.input_ids = f1['input_ids'] 
 
+        f2 = h5py.File(os.path.join(args.data_dir, args.datasetname+'_all_instances_'+str(args.K)+args.suffix+'.h5'), 'r')  
+        self.cur_samples = f2['samples_'+str(args.sample_id)] 
 
-        f = h5py.File(os.path.join(working_dir, 'all_instances_'+args.sample_id+'.h5'), 'r')  
-        self.cur_samples = f['samples_'+str(args.process_idx)] 
+        self.pageid2embedid = pickle.load(open(os.path.join(args.data_dir, args.datasetname+'_pageid2embedid'+args.suffix+'.pkl'), 'rb'))
 
         self.num_example  = self.cur_samples.shape[0]
-            
 
     def __len__(self):
         return self.num_example
     
-    def process(self, item):
-        idx, s, e, _ = item
-        input_ids = torch.tensor(self.input_ids[idx], dtype=torch.int64)
 
+    def __getitem__(self, index):
+        idx, s, e, embed_id = self.cur_samples[index]
+        assert (s < e)
+        input_ids = self.input_ids[idx].tolist()
+        left = input_ids[:s]
+        right = input_ids[e:]
+        entity_name = input_ids[s:e]
 
-        position_ids = torch.ones((self.max_seq_length, ), dtype=torch.int64)
-        position_ids[0] = 0
-        entity_l = e-s
-        position_ids[e] += -entity_l+1
-        position_ids = torch.cumsum(position_ids, dim=0)
+        input_ids = left 
+        mask_position = len(input_ids)
+        input_ids += [self.tokenizer.mask_token_id] + right #+ [self.tokenizer.sep_token_id]
 
-        input_ids[s] = self.tokenizer.mask_token_id
-        if s+1<e:
-            input_ids[s+1:e] = self.tokenizer.pad_token_id
+        pad_len = self.max_seq_length-len(input_ids)
 
+        input_ids = input_ids[:self.max_seq_length]
+        input_mask = [1] * len(input_ids) + [0] * pad_len
+        input_ids = input_ids + [self.tokenizer.pad_token_id] * pad_len
 
-        input_mask = (input_ids!=self.tokenizer.pad_token_id).long()
-        return input_ids, input_mask, torch.tensor([s,e], dtype=torch.int64), position_ids
+        input_ids = torch.tensor(input_ids, dtype=torch.int64)
+        input_mask = torch.tensor(input_mask, dtype=torch.int64)
 
-    def __getitem__(self, idx):
-        cur_item = self.cur_samples[idx]
-        cur_input_ids, cur_input_mask, boundary, cur_postion_ids = self.process(cur_item)
-
-        return (cur_input_ids, cur_input_mask, boundary, cur_postion_ids)
-
+        return [input_ids, input_mask, mask_position, embed_id]
 
 
 def set_seed(args):
@@ -104,44 +99,53 @@ def set_seed(args):
 def to_list(tensor):
     return tensor.detach().cpu().tolist()
 
-def evaluate(args, eval_dataset, model, tokenizer):
+
+def evaluate(args, model, tokenizer, prefix=''):
     """ Train the model """
-    args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
-    eval_sampler = SequentialSampler(eval_dataset) #if args.local_rank == -1 else DistributedSampler(eval_dataset)
-    train_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=args.train_batch_size, num_workers=8,  pin_memory=True)
+    eval_dataset = TextDataset(tokenizer, args)
+    args.eval_batch_size = args.per_gpu_eval_batch_size * max(1, args.n_gpu)
+    eval_sampler = SequentialSampler(eval_dataset) 
+    eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=args.eval_batch_size, num_workers=1, pin_memory=True)
 
     if args.fp16:
-        try:
-            from apex import amp
-        except ImportError:
-            raise ImportError("Please install apex from https://www.github.com/nvidia/apex to use fp16 training.")
-        model  = amp.initialize(model, opt_level=args.fp16_opt_level)
-    
+        model.half()
+
     model.eval()
-    num_example = len(eval_dataset) 
 
-    all_embeds = np.memmap(filename= os.path.join(args.data_dir, 'samples_maskembed_'+str(args.process_idx)+'.memmap'), mode='w+', dtype=np.float16, shape=(num_example, 768))
+    # Eval!
+    logger.info("***** Running evaluation {} *****".format(prefix))
+    logger.info("  Num examples = %d", len(eval_dataset))
+    logger.info("  Batch size = %d", args.eval_batch_size)
 
-    epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
-    cnt = 0
+    num_ent = len(eval_dataset.pageid2embedid)
+    logger.info("  Num Ent = %d", num_ent)
+    all_embeds = np.zeros((num_ent, args.hidden_size),  dtype=np.float32)
+
+    epoch_iterator = tqdm(eval_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
     for step, batch in enumerate(epoch_iterator):
-        input_ids, input_mask, boundary, position_ids =  batch 
-        bsz = input_ids.shape[0]
+        embed_ids = batch[-1]
+        batch = tuple(t.to(args.device) for t in batch[:-1])
 
         with torch.no_grad():
-            outputs = model(input_ids=input_ids.to(args.device), attention_mask=input_mask.to(args.device), position_ids=position_ids.to(args.device))
 
-        rep = outputs[0].detach()
+            inputs = {'input_ids':      batch[0],
+                      'attention_mask': batch[1],
+                      'mask_position': batch[2],
+                    }
 
-        for i in range(rep.shape[0]):
-            s, e = boundary[i]
-            embed = rep[i, s].cpu().numpy()
-            all_embeds[cnt+i] = embed
+            outputs = model(**inputs)
+
+        rep = outputs[0].detach().cpu().numpy()
+
+
+        for i in range(len(embed_ids)):
+            embed_id = embed_ids[i]
+            if embed_id>=0:
+                all_embeds[embed_id] += rep[i]
 
         outputs = None
-        cnt += bsz
 
-    print ('closed')
+    np.save(os.path.join(args.data_dir, args.datasetname+'_entity_embed_'+str(args.K)+'.npy'), all_embeds)
 
     
 
@@ -151,10 +155,8 @@ def main():
     ## Required parameters
     parser.add_argument("--data_dir", default=None, type=str, required=True,
                         help="The input training data file (a text file).")
-    # parser.add_argument("--output_dir", default=None, type=str, required=True,
-    #                     help="The output directory where the model predictions and checkpoints will be written.")
 
-    parser.add_argument("--model_type", default="deskepeler", type=str,
+    parser.add_argument("--model_type", default="roberta", type=str,
                         help="The model architecture to be fine-tuned.")
     parser.add_argument("--model_name_or_path", default="bert-base-cased", type=str,
                         help="The model checkpoint for weights initialization.")
@@ -177,9 +179,9 @@ def main():
     parser.add_argument("--do_lower_case", action='store_true',
                         help="Set this flag if you are using an uncased model.")
 
-    parser.add_argument("--per_gpu_train_batch_size", default=4, type=int,
+    parser.add_argument("--per_gpu_train_batch_size", default=32, type=int,
                         help="Batch size per GPU/CPU for training.")
-    parser.add_argument("--per_gpu_eval_batch_size", default=4, type=int,
+    parser.add_argument("--per_gpu_eval_batch_size", default=32, type=int,
                         help="Batch size per GPU/CPU for evaluation.")
     parser.add_argument('--gradient_accumulation_steps', type=int, default=1,
                         help="Number of updates steps to accumulate before performing a backward/update pass.")
@@ -227,8 +229,14 @@ def main():
     parser.add_argument('--server_ip', type=str, default='', help="For distant debugging.")
     parser.add_argument('--server_port', type=str, default='', help="For distant debugging.")
  
-    parser.add_argument("--process_idx", type=int, default=-1, help="")
-    parser.add_argument("--sample_id", default='wiki', type=str,  help="")
+    parser.add_argument("--sample_id", default=0, type=int,  help="")
+    parser.add_argument('--num_l_prompt', type=int, default=1)
+    parser.add_argument('--num_m_prompt', type=int, default=2)
+    parser.add_argument('--num_r_prompt', type=int, default=1)
+    parser.add_argument('--lminit', action='store_true')
+    parser.add_argument('--suffix', type=str, default='')
+    parser.add_argument('--K', type=int, default=256)
+    parser.add_argument('--datasetname', type=str, default='wiki')
 
 
 
@@ -263,6 +271,10 @@ def main():
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
 
     config = config_class.from_pretrained(args.config_name if args.config_name else args.model_name_or_path)
+
+    args.hidden_size = config.hidden_size
+    args.vocab_size  = config.vocab_size
+
     tokenizer = tokenizer_class.from_pretrained(args.tokenizer_name if args.tokenizer_name else args.model_name_or_path, do_lower_case=args.do_lower_case)
 
     model = model_class.from_pretrained(args.model_name_or_path, from_tf=bool('.ckpt' in args.model_name_or_path), config=config)
@@ -274,12 +286,27 @@ def main():
 
     logger.info("Training/evaluation parameters %s", args)
 
+
     if args.local_rank not in [-1, 0]:
         torch.distributed.barrier()  # Barrier to make sure only the first process in distributed training process the dataset, and the others will use the cache
 
-    eval_dataset = TextDataset(tokenizer, working_dir=args.data_dir, max_seq_length=args.max_seq_length, args=args)
-    evaluate(args, eval_dataset, model, tokenizer)
+
+    if args.local_rank == 0:
+        torch.distributed.barrier()
+
+    evaluate(args, model, tokenizer)
+
+
+    if args.local_rank == 0:
+        torch.distributed.barrier()
+
+    # Evaluation
+    results = {}
+
+    return results
 
 
 if __name__ == "__main__":
     main()
+    
+    

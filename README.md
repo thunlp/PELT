@@ -11,15 +11,6 @@ pip install ./transformers
 After that, install [apex](https://github.com/NVIDIA/apex) for fp16 support. 
 
 
-## Preparation 
-Add several padding tokens into the RoBERTa model and translate the format of checkpoint:
-
-```
-python prepare_checkpoint.py
-```
-
-Due to limited storage space, we only upload the embeddings of the entities that appear in the FewRel dataset to [Tsinghua Cloud](https://cloud.tsinghua.edu.cn/d/71a3262ba7614f938fb2/).
-
 
 
 ## Generate entity embedding from text
@@ -32,13 +23,10 @@ python3 generate_evalsamples.py
 
 Obtain the output representation of masked token in entity's occurrences
 ```
-CUDA_VISIBLE_DEVICES=0 python3  run_generate_outputrep.py   --data_dir  ../wikipedia_data/   --sample_id wiki   --model_type robertarep --model_name_or_path  ../bert_models/roberta-base --per_gpu_train_batch_size 512  --max_seq_length 64  --process_idx 0   --fp16   --fp16_opt_level O2
+CUDA_VISIBLE_DEVICES=0 python3 run_generate.py --model_type roberta --model_name_or_path ../../bert_models/roberta-base     --data_dir ./wiki_data  --per_gpu_eval_batch_size 256  --fp16
 ```
 
-Aggregate the output representation to generate the embedding of entity:
-```
-python3 generate_embed.py
-```
+Due to limited storage space, we only upload the embeddings of the entities that appear in the FewRel dataset to [Tsinghua Cloud](https://cloud.tsinghua.edu.cn/d/71a3262ba7614f938fb2/).
 
 
 
