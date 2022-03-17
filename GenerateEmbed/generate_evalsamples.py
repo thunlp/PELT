@@ -11,7 +11,7 @@ from collections import defaultdict
 working_dir = 'wiki_data/'
 datasetname = 'wiki' 
 K = 256      
-num_split = 4 # for multiprocessing
+num_split = 1 # for multiprocessing
 
 tokenizer = RobertaTokenizer.from_pretrained("../../bert_models/roberta-base/", do_lower_case=False)
 
