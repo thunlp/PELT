@@ -13,7 +13,7 @@ After that, install [apex](https://github.com/NVIDIA/apex) for fp16 support.
 
 
 
-## Generate entity embedding from text
+## Generate Entity Embedding from Text
 Codes are in GenerateEmbed folder.
 
 Download linked Wikpedia from [Tsinghua Cloud](https://cloud.tsinghua.edu.cn/d/d5bd0071db6642699eb4/).
@@ -34,7 +34,7 @@ Obtain the output representation of masked token in entity's occurrences
 CUDA_VISIBLE_DEVICES=0 python3 run_generate.py --model_type roberta --model_name_or_path  roberta-base     --data_dir ./wiki_data  --per_gpu_eval_batch_size 256  --fp16
 ```
 
-Due to limited storage space, we only upload the embeddings of the entities that appear in the FewRel dataset to [Tsinghua Cloud](https://cloud.tsinghua.edu.cn/d/71a3262ba7614f938fb2/).
+Due to limited storage space, we only upload the generated embeddings of the entities that appear in the FewRel dataset to [Tsinghua Cloud](https://cloud.tsinghua.edu.cn/d/71a3262ba7614f938fb2/). If you require those of other entities, please follow the previous steps to generate new ones.
 
 
 
