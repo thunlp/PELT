@@ -14,7 +14,7 @@ import sys
 import transformers
 
 wiki_path = 'article_further_links/'
-output_dir = 'wiki_metadata/'
+output_dir = 'wiki_ids_data/'
 os.makedirs(output_dir, exist_ok=True)
 
 is_bert = False

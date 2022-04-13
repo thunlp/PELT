@@ -12,7 +12,7 @@ import h5py
 import sys
 import transformers
 
-data_dir = 'wiki_metadata/'
+data_dir = 'wiki_ids_data/'
 
 is_bert = False
 if not is_bert:

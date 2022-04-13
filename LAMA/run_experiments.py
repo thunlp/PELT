@@ -34,7 +34,7 @@ LMs = [
     #     "roberta_model_dir": "./roberta.base",
     #     "roberta_model_name": "model.pt",
     #     "roberta_vocab_name": "dict.txt",
-    #     "luke_model_dir": "../../bert_models/roberta-base",
+    #     "luke_model_dir": "roberta-base",
 
     # },
 
@@ -45,7 +45,7 @@ LMs = [
         "roberta_model_name": "model.pt",
         "roberta_vocab_name": "dict.txt",
         "roberta_model_dir": working_dir+"roberta.base",
-        "luke_model_dir": "../../bert_models/roberta-base",
+        "luke_model_dir": "roberta-base",
         'modL': float(sys.argv[2]),
     },
 
@@ -55,7 +55,7 @@ LMs = [
     #     "label": "bert-base-uncased",
     #     "models_names": ["bert"],
     #     "bert_model_name": "bert-base-cased",
-    #     "bert_model_dir": "/data3/private/yedeming/bert_models/bert-base-uncased",
+    #     "bert_model_dir": "bert-base-uncased",
     # },
 
 
@@ -63,7 +63,7 @@ LMs = [
     #     "lm": "bertconcat",
     #     "label": "bert-base-uncased",
     #     "models_names": ["bertconcat"],
-    #     "model_name_or_path": "/data3/private/yedeming/bert_models/bert-base-uncased", 
+    #     "model_name_or_path": "bert-base-uncased", 
     #     'modL': float(sys.argv[2]),
     # },
 
