@@ -6,6 +6,7 @@ Code and data of the ACL 2022 paper "[A Simple but Effective Pluggable Entity Lo
 ```
 pip install torch
 pip install numpy
+pip install h5py
 pip install --editable ./transformers
 ```
 After that, install [apex](https://github.com/NVIDIA/apex) for fp16 support. 
