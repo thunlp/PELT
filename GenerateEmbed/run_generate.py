@@ -74,8 +74,8 @@ class TextDataset(Dataset):
 
         input_ids = left 
         mask_position = len(input_ids)
-        input_ids += [self.tokenizer.mask_token_id] + right #+ [self.tokenizer.sep_token_id]
-
+        input_ids += [self.tokenizer.mask_token_id] + right 
+        
         pad_len = self.max_seq_length-len(input_ids)
 
         input_ids = input_ids[:self.max_seq_length]
