@@ -399,6 +399,7 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin):
         if pretrained_model_name_or_path is not None:
             if pretrained_model_name_or_path in cls.pretrained_model_archive_map:
                 archive_file = cls.pretrained_model_archive_map[pretrained_model_name_or_path]
+                print ('loaded', cls.pretrained_model_archive_map)
             elif os.path.isdir(pretrained_model_name_or_path):
                 if from_tf and os.path.isfile(os.path.join(pretrained_model_name_or_path, TF_WEIGHTS_NAME + ".index")):
                     # Load from a TF 1.0 checkpoint

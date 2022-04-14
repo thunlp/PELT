@@ -1,7 +1,7 @@
 from fewshot_re_kit.data_loader import get_loader, get_loader_pair, get_loader_unsupervised
 from fewshot_re_kit.framework import FewShotREFramework
-from fewshot_re_kit.sentence_encoder import CNNSentenceEncoder, BERTSentenceEncoder, BERTPAIRSentenceEncoder, RobertaSentenceEncoder, RobertaPAIRSentenceEncoder
-from fewshot_re_kit.sentence_encoder import LukePAIRSentenceEncoder, RobertaEntPAIRSentenceEncoder, LukeSentenceEncoder, LukeBERTSentenceEncoder, RobertaEntSentenceEncoder
+from fewshot_re_kit.sentence_encoder import RobertaSentenceEncoder, RobertaEntSentenceEncoder, BERTSentenceEncoder
+# from fewshot_re_kit.sentence_encoder import LukePAIRSentenceEncoder, RobertaEntPAIRSentenceEncoder, LukeSentenceEncoder, LukeBERTSentenceEncoder
 import models
 from models.proto import Proto
 from models.gnn import GNN
@@ -124,17 +124,7 @@ def main():
     print("encoder: {}".format(encoder_name))
     print("max_length: {}".format(max_length))
 
-    if encoder_name == 'cnn':
-        try:
-            glove_mat = np.load('./pretrain/glove/glove_mat.npy')
-            glove_word2id = json.load(open('./pretrain/glove/glove_word2id.json'))
-        except:
-            raise Exception("Cannot find glove files. Run glove/download_glove.sh to download glove files.")
-        sentence_encoder = CNNSentenceEncoder(
-                glove_mat,
-                glove_word2id,
-                max_length)
-    elif encoder_name == 'bert':
+    if encoder_name == 'bert':
         pretrain_ckpt = opt.pretrain_ckpt or 'bert-base-uncased'
         if opt.pair:
             sentence_encoder = BERTPAIRSentenceEncoder(
@@ -158,17 +148,17 @@ def main():
                     max_length,
                     cat_entity_rep=opt.cat_entity_rep)
 
-    elif encoder_name == 'luke':
-        pretrain_ckpt = opt.pretrain_ckpt
-        if opt.pair:
-            sentence_encoder = LukePAIRSentenceEncoder(
-                    pretrain_ckpt,
-                    max_length)
-        else:
-            sentence_encoder = LukeSentenceEncoder(
-                    pretrain_ckpt,
-                    max_length,
-                    cat_entity_rep=opt.cat_entity_rep)
+    # elif encoder_name == 'luke':
+    #     pretrain_ckpt = opt.pretrain_ckpt
+    #     if opt.pair:
+    #         sentence_encoder = LukePAIRSentenceEncoder(
+    #                 pretrain_ckpt,
+    #                 max_length)
+    #     else:
+    #         sentence_encoder = LukeSentenceEncoder(
+    #                 pretrain_ckpt,
+    #                 max_length,
+    #                 cat_entity_rep=opt.cat_entity_rep)
     elif encoder_name == 'robertaent':
         pretrain_ckpt = opt.pretrain_ckpt
 

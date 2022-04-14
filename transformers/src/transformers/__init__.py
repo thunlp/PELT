@@ -159,13 +159,7 @@ if is_torch_available():
         BertForQuestionAnswering,
         load_tf_weights_in_bert,
         BERT_PRETRAINED_MODEL_ARCHIVE_MAP,
-        BertForTriviaQuestionAnswering,
         BertOnlyMLMHead,
-        BertForWikihop,
-        BertForWikihopMulti,
-        BertForQuestionAnsweringHotpot,
-        BertForSummary,
-        BertSimplekeplerForPretraining,
         BertForRep,
         BertForHeadTailSequenceClassification
     )
@@ -227,38 +221,17 @@ if is_torch_available():
         RobertaForQuestionAnswering,
         ROBERTA_PRETRAINED_MODEL_ARCHIVE_MAP,
         RobertaForMultipleChoice,
-        RobertaForTransE,
-        RobertaForMerge,
-        RobertaForTogether,
-        RobertaForEmbed,
-        RobertaForFix,
         RobertaForRep,
-        RobertaForPair,
-        RobertaForTriviaQuestionAnswering,
-        RobertaForWikihopMulti,
-        RobertaForQuestionAnsweringHotpotSeg,
-        RobertaForMarkerSequenceClassification,
-        RobertaForLMQA,
-        RobertaForLMMarkerQA
     )
     from .modeling_bertent import (
-        BertEntForLinkPrediction,
+        BertEntForMaskedLM,
     )
     from .modeling_robertaent import (
         RobertaEntModel,
         RobertaEntForSequenceClassification,
-        RobertaEntForMarkerSequenceClassification,
-        RobertaEntForAppendSequenceClassification,
-        RobertaEntForLinkPrediction,
-        RobertaEntForQuestionAnswering,
-        RobertaEntForTyping,
-        RobertaEntForSpanClassification,
-        RobertaEntForSpanQA,
-        RobertaEntForSpanClassificationLinear,
-        RobertaEntForSpanClassificationNoQ,
-        RobertaEntForSpanQANoQ,
-        RobertaEntForTriviaQuestionAnswering
+        RobertaEntForMaskedLM
     )
+
     from .modeling_camembert import (
         CamembertForMaskedLM,
         CamembertModel,
