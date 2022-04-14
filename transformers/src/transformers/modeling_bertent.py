@@ -263,42 +263,17 @@ class BertEntModel(BertPreTrainedModel):
         # return (sequence_output, ) 
 
 
-class BertEntLMPredictionHead(nn.Module):
-    def __init__(self, config):
-        super().__init__()
-        self.transform = BertPredictionHeadTransform(config)
 
-        self.ent_decoder = nn.Linear(config.hidden_size, config.entity_vocab_size, bias=False)
-        self.ent_bias = nn.Parameter(torch.zeros(config.entity_vocab_size))
-
-        # Need a link between the two variables so that the bias is correctly resized with `resize_token_embeddings`
-        self.ent_decoder.bias = self.ent_bias
-
-
-    def forward(self, hidden_states):
-        hidden_states = self.transform(hidden_states)
-        hidden_states = self.ent_decoder(hidden_states)
-        return hidden_states
-
-
-class BertEntLMHead(nn.Module):
-    def __init__(self, config):
-        super().__init__()
-        self.predictions = BertEntLMPredictionHead(config)
-
-    def forward(self, sequence_output):
-        prediction_scores = self.predictions(sequence_output)
-        return prediction_scores
-
-
-
-class BertEntForLinkPrediction(BertPreTrainedModel):
+class BertEntForMaskedLM(BertPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.bert = BertEntModel(config)
-        self.cls = BertEntLMHead(config)
-        self.cls.predictions.ent_decoder.weight = self.bert.entity_embeddings.entity_embeddings.weight
+        self.cls = BertOnlyMLMHead(config)
 
+        self.init_weights()
+
+    def get_output_embeddings(self):
+        return self.cls.predictions.decoder
     def forward(
         self,
         input_ids=None,
@@ -307,8 +282,11 @@ class BertEntForLinkPrediction(BertPreTrainedModel):
         position_ids=None,
         labels=None,
         entity_ids=None,
+        entity_embeddings=None,
         entity_position_ids=None,
         mask_position=None,
+        masked_lm_labels=None,
+        lm_labels=None,
     ): 
         outputs = self.bert(
             input_ids,
@@ -316,19 +294,29 @@ class BertEntForLinkPrediction(BertPreTrainedModel):
             token_type_ids=token_type_ids,
             position_ids=position_ids,
             entity_ids=entity_ids,
+            entity_embeddings=entity_embeddings,
             entity_position_ids=entity_position_ids,
         )
         bsz, seq_len = input_ids.shape
-        sequence_output = outputs[0] 
-        states = sequence_output[torch.arange(bsz), mask_position]
+        sequence_output = outputs[0]
+        sequence_output = sequence_output[:, :seq_len] 
 
-        logits = self.cls(states)
+        prediction_scores = self.cls(sequence_output)
 
-        outputs = (logits,) + outputs[2:]
-        if labels is not None:
-            loss_fct = CrossEntropyLoss()
-            loss = loss_fct(logits, labels.view(-1))
-            outputs = (loss,) + outputs
+        outputs = (prediction_scores,) + outputs[2:]  # Add hidden states and attention if they are here
 
+        if masked_lm_labels is not None:
+            loss_fct = CrossEntropyLoss(ignore_index=-1)  # -100 index = padding token
+            masked_lm_loss = loss_fct(prediction_scores.view(-1, self.config.vocab_size), masked_lm_labels.view(-1))
+            outputs = (masked_lm_loss,) + outputs
+
+        if lm_labels is not None:
+            # we are doing next-token prediction; shift prediction scores and input ids by one
+            prediction_scores = prediction_scores[:, :-1, :].contiguous()
+            lm_labels = lm_labels[:, 1:].contiguous()
+            loss_fct = CrossEntropyLoss(ignore_index=-1)
+            ltr_lm_loss = loss_fct(prediction_scores.view(-1, self.config.vocab_size), lm_labels.view(-1))
+            outputs = (ltr_lm_loss,) + outputs        
+        
         return outputs  # (loss), logits, (hidden_states), (attentions)
 

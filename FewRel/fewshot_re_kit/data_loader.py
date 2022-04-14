@@ -33,7 +33,6 @@ class FewRelDataset(data.Dataset):
                 embed_path = '../wiki_roberta_fewrel'
                 self.qid2id = pickle.load(open(os.path.join(embed_path, "qid2embedid.pkl"), 'rb'),)
                 self.entity_embed = np.load(os.path.join(embed_path, 'wiki_entity_embed_256.npy'))
-                # if self.modL>0:
                 L = np.linalg.norm(self.entity_embed, axis=-1)
                 self.entity_embed = self.entity_embed / np.expand_dims(L, -1) * self.modL
 
@@ -41,7 +40,7 @@ class FewRelDataset(data.Dataset):
                 embed_path = '../medembed_roberta_fewrel/'
                 self.qid2id = pickle.load(open(embed_path + "qid2embedid.pkl", 'rb'),)
          
-                self.entity_embed = np.load(os.path.join(embed_path, 'med_entity_embed_256.npy'))
+                self.entity_embed = np.load(os.path.join(embed_paasasdfth, 'med_entity_embed_256.npy'))
                 L = np.linalg.norm(self.entity_embed, axis=-1)
                 self.entity_embed = self.entity_embed / np.expand_dims(L, -1) * self.modL
 
@@ -64,9 +63,11 @@ class FewRelDataset(data.Dataset):
         h_pos[1] += 1
         t_pos[0] += 1
         t_pos[1] += 1
+        # h_pos is (left marker's postiion, right marker's position)
 
         input_ids = input_ids[ : max_length - 2]
         input_ids = [self.encoder.tokenizer.cls_token_id] + input_ids + [self.encoder.tokenizer.sep_token_id] 
+
         # Zero-pad up to the sequence length.
         L = len(input_ids)
         padding_length = max_length - L
@@ -77,12 +78,11 @@ class FewRelDataset(data.Dataset):
 
         attention_mask += [1] * self.max_entity_length
 
-        e1_pos = h_pos[1] - 2
-        e2_pos = t_pos[1] - 2
+        e1_pos = h_pos[1] - 2    # input sequence: [left marker] entity_name ( [MASK] ) [right marker]
+        e2_pos = t_pos[1] - 2    # get the position of [MASK] and replace it with the generated entity embedding
 
         if (h_id in self.qid2id and e1_pos < max_length-1) and self.use_entembed:
             h_id = self.qid2id[h_id]
-            # h_embed = torch.tensor(np.array(self.entity_embed[h_id]), dtype=torch.float32)
             h_embed = torch.tensor(self.entity_embed[h_id], dtype=torch.float32)
 
             attention_mask[e1_pos] = 0
@@ -92,7 +92,6 @@ class FewRelDataset(data.Dataset):
 
         if (t_id in self.qid2id and e2_pos < max_length-1) and self.use_entembed:
             t_id = self.qid2id[t_id]
-            # t_embed = torch.tensor(np.array(self.entity_embed[t_id]), dtype=torch.float32)
             t_embed = torch.tensor(self.entity_embed[t_id], dtype=torch.float32)
             attention_mask[e2_pos] = 0
         else:
@@ -100,10 +99,6 @@ class FewRelDataset(data.Dataset):
             attention_mask[max_length+1] = 0
 
         entity_embeddings = torch.stack([h_embed, t_embed], dim=0)
-        # if self.modL>0:
-        #     L = torch.norm(entity_embeddings, dim=-1)
-        #     entity_embeddings = entity_embeddings / L.unsqueeze(-1) * self.modL
-
 
         entity_position_ids = torch.tensor([min(e1_pos, max_length-1), min(e2_pos, max_length-1)])
         if 'roberta' in self.encoder_name:
@@ -111,8 +106,6 @@ class FewRelDataset(data.Dataset):
 
         pos1 = min(h_pos[0], max_length-1)
         pos2 = min(t_pos[0], max_length-1)
-        # pos1 = min(e1_pos, max_length-1)
-        # pos2 = min(e2_pos, max_length-1)
 
         if not ('ent' in self.encoder_name):
             attention_mask = attention_mask[:max_length]
@@ -188,7 +181,7 @@ def collate_fn(data):
     return batch_support, batch_query, batch_label
 
 def get_loader(name, encoder, N, K, Q, batch_size, 
-        num_workers=4, collate_fn=collate_fn, na_rate=0, root='/home/yedeming/PELT/FewRel/data', encoder_name=None, med_fewrel=False, modL=6): # for debug
+        num_workers=4, collate_fn=collate_fn, na_rate=0, root='data', encoder_name=None, med_fewrel=False, modL=6): # for debug
     dataset = FewRelDataset(name, encoder, N, K, Q, na_rate, root, encoder_name, med_fewrel=med_fewrel, modL=modL)
     data_loader = data.DataLoader(dataset=dataset,
             batch_size=batch_size,
@@ -382,7 +375,7 @@ def collate_fn_pair(data):
     return batch_set, batch_label
 
 def get_loader_pair(name, encoder, N, K, Q, batch_size, 
-        num_workers=8, collate_fn=collate_fn_pair, na_rate=0, root='data', encoder_name='bert', med_fewrel=False):
+        num_workers=8, collate_fn=collate_fn_pair, na_rate=0, root='data', encoder_name='roberta', med_fewrel=False):
     dataset = FewRelDatasetPair(name, encoder, N, K, Q, na_rate, root, encoder_name, med_fewrel=med_fewrel)
     data_loader = data.DataLoader(dataset=dataset,
             batch_size=batch_size,
