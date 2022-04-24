@@ -69,7 +69,7 @@ for file in files:
                                 start = char_to_word_offset[start]
                                 end = char_to_word_offset[end-1]+1
                                 rare_list.append( ( word_id, start, end, name) )
-
+                        rare_list = list(set(rare_list))   # duplicate removal, an entity may be linked by several methods
                         if len(input_ids)+2<= max_seq_length and len(input_ids)>=8 and len(rare_list)>0:
                             if not debug:
                                 item = {'input_ids':input_ids, 'a_list': rare_list}
