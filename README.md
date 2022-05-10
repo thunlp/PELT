@@ -15,8 +15,9 @@ After that, install [apex](https://github.com/NVIDIA/apex) for fp16 support.
 ## Generate Entity Embedding from Text
 Codes are in GenerateEmbed folder.
 
-Execute `bash download_wikipedia.sh` to download linked Wikpedia from [Tsinghua Cloud](https://cloud.tsinghua.edu.cn/d/d5bd0071db6642699eb4/) and transform Wikipeida text to input_ids with entity position:
+Download linked Wikpedia from [Tsinghua Cloud](https://cloud.tsinghua.edu.cn/d/d5bd0071db6642699eb4/) and transform Wikipeida text to input_ids with entity position:
 ```
+bash download_wikipedia.sh
 python3 sent_filter_stp1.py
 python3 sent_filter_stp2.py
 ```
