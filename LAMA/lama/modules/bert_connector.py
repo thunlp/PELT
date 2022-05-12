@@ -70,7 +70,7 @@ class Bert(Base_Connector):
             do_lower_case=True
 
         # Load pre-trained model tokenizer (vocabulary)
-        self.tokenizer = BertTokenizer.from_pretrained( '../../bert_models/bert-base-uncased',  do_lower_case=do_lower_case)
+        self.tokenizer = BertTokenizer.from_pretrained( bert_model_name,  do_lower_case=do_lower_case)
 
         # original vocab
         self.map_indices = None
@@ -83,7 +83,7 @@ class Bert(Base_Connector):
 
         # Load pre-trained model (weights)
         # ... to get prediction/generation
-        self.masked_bert_model = BertForMaskedLM.from_pretrained('../../bert_models/bert-base-uncased')
+        self.masked_bert_model = BertForMaskedLM.from_pretrained(bert_model_name)
 
         self.masked_bert_model.eval()
 
