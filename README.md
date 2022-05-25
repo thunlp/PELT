@@ -74,9 +74,25 @@ The code for BART is based on transformers 4.15. Please send mail to acquire thi
 If you use our code in your research, please cite our work:
 ```bibtex
 @inproceedings{ye2022pelt,
-  author    = {Deming Ye and Yankai Lin and Peng Li and Maosong Sun and Zhiyuan Liu},
-  title     = {A Simple but Effective Pluggable Entity Lookup Table for Pre-trained Language Models},
-  booktitle = {Proceedings of ACL 2022},
-  year      = {2022}
+  author    = {Deming Ye and
+               Yankai Lin and
+               Peng Li and
+               Maosong Sun and
+               Zhiyuan Liu},
+  editor    = {Smaranda Muresan and
+               Preslav Nakov and
+               Aline Villavicencio},
+  title     = {A Simple but Effective Pluggable Entity Lookup Table for Pre-trained
+               Language Models},
+  booktitle = {Proceedings of the 60th Annual Meeting of the Association for Computational
+               Linguistics (Volume 2: Short Papers), {ACL} 2022, Dublin, Ireland,
+               May 22-27, 2022},
+  pages     = {523--529},
+  publisher = {Association for Computational Linguistics},
+  year      = {2022},
+  url       = {https://aclanthology.org/2022.acl-short.57},
+  timestamp = {Wed, 18 May 2022 15:21:43 +0200},
+  biburl    = {https://dblp.org/rec/conf/acl/YeL0S022.bib},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
 }
 ```
