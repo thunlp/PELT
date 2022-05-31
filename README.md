@@ -68,7 +68,7 @@ python3 run_experiemnt.py 0 $Embednorm
 
 
 ## Code For BART
-The code for BART is based on transformers 4.15. Please send mail to acquire this part of code. Email: ydm18@mails.tsinghua.edu.cn.
+The code for BART is based on transformers 4.15 in [Tsinghua Cloud](https://cloud.tsinghua.edu.cn/d/71a3262ba7614f938fb2/).
 
 ## Citation
 If you use our code in your research, please cite our work:
