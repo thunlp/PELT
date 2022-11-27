@@ -394,3 +394,63 @@ class RobertaEntForMaskedLM(BertPreTrainedModel):
             outputs = (masked_lm_loss,) + outputs
 
         return outputs  # (masked_lm_loss), prediction_scores, (hidden_states), (attentions)
+
+
+class RobertaEntForMarkerSequenceClassification(BertPreTrainedModel):
+    def __init__(self, config):
+        super().__init__(config)
+        self.num_labels = config.num_labels
+
+        self.roberta = RobertaEntModel(config)
+        self.classifier = nn.Linear(config.hidden_size*2, config.num_labels)
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+
+    def forward(
+        self,
+        input_ids=None,
+        attention_mask=None,
+        token_type_ids=None,
+        position_ids=None,
+        head_mask=None,
+        inputs_embeds=None,
+        labels=None,
+        entity_ids=None,
+        entity_embeddings=None,
+        entity_attention_mask=None,
+        entity_position_ids=None,
+        ht_position=None,
+    ):
+        outputs = self.roberta(
+            input_ids,
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
+            position_ids=position_ids,
+            head_mask=head_mask,
+            inputs_embeds=inputs_embeds,
+            entity_ids=entity_ids,
+            entity_embeddings=entity_embeddings,
+            entity_attention_mask=entity_attention_mask,
+            entity_position_ids=entity_position_ids,
+        )
+        sequence_output = outputs[0]#[:, : input_ids.size(1), :]
+        bsz = sequence_output.shape[0]
+        h_rep = sequence_output[torch.arange(bsz), ht_position[:,0]]
+        t_rep = sequence_output[torch.arange(bsz), ht_position[:,1]]
+
+        ht_rep = torch.cat([h_rep, t_rep], dim=-1)
+        ht_rep = self.dropout(ht_rep)
+
+        logits = self.classifier(ht_rep)
+
+        outputs = (logits,) + outputs[2:]
+        if labels is not None:
+            if self.num_labels == 1:
+                #  We are doing regression
+                loss_fct = MSELoss()
+                loss = loss_fct(logits.view(-1), labels.view(-1))
+            else:
+                loss_fct = CrossEntropyLoss()
+                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+            outputs = (loss,) + outputs
+
+        return outputs  # (loss), logits, (hidden_states), (attentions)

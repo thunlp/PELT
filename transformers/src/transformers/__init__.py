@@ -229,7 +229,8 @@ if is_torch_available():
     from .modeling_robertaent import (
         RobertaEntModel,
         RobertaEntForSequenceClassification,
-        RobertaEntForMaskedLM
+        RobertaEntForMaskedLM,
+        RobertaEntForMarkerSequenceClassification
     )
 
     from .modeling_camembert import (
